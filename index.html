@@ -1,0 +1,182 @@
+<html>
+    <head>
+        <style>
+            input {margin-left:20px;}
+            #grep-container {
+                margin: 20 auto;
+                width:400px;
+                border-radius: 5px;
+                background-color: #f2f2f2;
+                padding: 20px;
+            }
+
+            #video-container {
+                position: relative;
+                width: 100%;
+            }
+
+            video {
+              margin: 20 auto 20 auto;
+              display: block;
+            }
+
+            input[type=text] {
+                width: 100%;
+                padding: 12px 20px;
+                margin: 8px 0;
+                display: inline-block;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                box-sizing: border-box;
+            }
+        </style>
+    </head>
+    <body>
+
+        <div width="100%" height="100%" id="grep-container">
+            <label for="videoUrl">Cloudinary Url:</label>
+            <input name="url" id="videoUrl" type="text" onchange="checkStatus();">
+            <div id="grep">
+                <label for="query">Search:</label><input name="query" id="query" type="text">
+                <button value="" onclick="return grep();">Grep</button>
+            </div>
+        </div>
+        <div width="100%" height="100%" id="video-container">
+            <video width="640" height="480" id="videoPlayer" controls />
+        </div>
+        
+
+        <script type="text/javascript">
+            var transcript = null;
+
+            function checkStatus() {
+                let videoUrl = document.getElementById("videoUrl").value;
+                disableGrep();
+                if (!videoUrl) return;
+
+                updateHash(videoUrl);
+                updateVideoPlayer(videoUrl);
+
+                return loadTranscript(videoUrl)
+                    .then(t => disableGrep(!t))
+                    .then(() => grep())
+            }
+
+            function disableGrep(disable = true) {
+                console.log(disable);
+                document.getElementById("grep").style.display = disable ? "none" : "block"
+            }
+
+            function loadTranscript(videoUrl) {
+                transcript = null;
+
+                let transcriptUrl = videoUrl.replace(/\.[^.]+$/, ".transcript").replace('/video/', '/raw/');
+                return fetch(transcriptUrl)
+                    .then(response => response.json())
+                    .catch(e => {
+                        // TODO: show spinner
+                        return null;
+                    })
+                    .then(t => transcript = t)
+                    .then(() => transcript)
+            }
+
+            function updateVideoPlayer(videoUrl) {
+                let videoPlayer = document.getElementById("videoPlayer");
+
+                videoPlayer.style.display = "none";
+                if (!!videoUrl) {
+                    videoPlayer.style.display = "block";
+                    videoPlayer.setAttribute('src', videoUrl);
+                    videoPlayer.setAttribute('autoplay', 'autoplay');
+                }
+
+                return videoUrl;
+            }
+
+            function grep() {
+                if (!transcript) return;
+
+                let videoUrl = document.getElementById("videoUrl").value;
+                let query = document.getElementById("query").value;
+                let { cloudName, publicId } = parseUrl(videoUrl);
+
+                updateHash(videoUrl, query);
+
+                let cmd = '';
+
+                let items = transcript.filter((item) => item.transcript.toLowerCase().includes(query)) || [];
+
+                items.forEach((item, index) => {
+                    let startTime = item.words[0].start_time;
+                    let endTime = item.words[item.words.length - 1].end_time;
+
+                    if (endTime - startTime > 5) {
+                        let wordIndex = item.words.findIndex((item) => item.word.toLowerCase().includes(query));
+
+                        if (wordIndex !== -1) {
+                            let startIndex = Math.max(0, wordIndex - 3);
+
+                            let wordsLen = item.words.length;
+                            let endIndex = Math.min(wordIndex + 3, wordsLen);
+
+                            startTime = item.words[startIndex].start_time;
+                            endTime = item.words[endIndex].end_time;
+                        }
+                    }
+
+                    startTime = Math.max(startTime - 0.3, 0).toFixed(2);
+                    endTime = (endTime + 0.5).toFixed(2);
+
+                    if (index === 0) {
+                        cmd += `so_${startTime},eo_${endTime}/`;
+                    } else {
+                        cmd += `l_video:${publicId},so_${startTime},eo_${endTime},fl_splice/fl_layer_apply/`
+                    }
+                });
+
+                if (!!cmd) {
+                    videoUrl = videoUrl.replace(/((?<=upload)\/+)/, `/${cmd}/`);
+                }
+
+                updateVideoPlayer(videoUrl);
+
+            }
+
+
+            function updateHash(url, query) {
+                location.hash = [url, query].filter(v => !!v).join('!');
+            }
+
+            function parseHash() {
+                let [url, query] = location.hash.replace(/^#/, '').split('!');
+
+                if (/^http|res.cloudinary.com/.test(query))
+                    [query, url] = [url, query];
+                return {url, query};
+            }
+
+            function onLoad() {
+                let {url, query} = parseHash();
+
+                if (!!query) document.getElementById("query").value = query;
+                if (!!url) document.getElementById("videoUrl").value = url;
+                checkStatus();
+            }
+
+            function parseUrl(url) {
+                let re = /cloudinary[.]com[/]([^/]+)[/].*[/]([^/]+)[.][^.]+$/;
+                let parsed = url.match(re);
+
+                let cloudName = parsed[1];
+                let publicId = parsed[2];
+
+                return { cloudName, publicId };
+            }
+
+
+            window.addEventListener("load", onLoad);
+
+        </script>
+    </body>
+</html>
