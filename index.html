@@ -21,7 +21,9 @@
             }
 
             #tagCloud {
+                margin: 10 auto 0 auto;
                 height: 200px;
+                width: 100%;
             }
 
             input[type=text] {
@@ -75,7 +77,6 @@
             }
 
             function disableGrep(disable = true) {
-                console.log(disable);
                 document.getElementById("grep").style.display = disable ? "none" : "block"
             }
 
@@ -125,7 +126,7 @@
                         }
                     })
                 });
-                $('#tagCloud').jQCloud(Object.values(tagWords), { autoResize: true });
+                $('#tagCloud').jQCloud(Object.values(tagWords), { autoResize: true, shape: 'rectangular', removeOverflowing: false, fontSize: {from: 0.075, to: 0.025} });
             }
 
             function grep() {
