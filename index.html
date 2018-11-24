@@ -20,6 +20,10 @@
               display: block;
             }
 
+            #tagCloud {
+                height: 200px;
+            }
+
             input[type=text] {
                 width: 100%;
                 padding: 12px 20px;
@@ -30,6 +34,9 @@
                 box-sizing: border-box;
             }
         </style>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+        <link rel="stylesheet" href="http://mistic100.github.io/jQCloud/dist/jqcloud2/dist/jqcloud.min.css">
+        <script src="http://mistic100.github.io/jQCloud/dist/jqcloud2/dist/jqcloud.js"></script>
     </head>
     <body>
 
@@ -39,6 +46,8 @@
             <div id="grep">
                 <label for="query">Search:</label><input name="query" id="query" type="text">
                 <button value="" onclick="return grep();">Grep</button>
+            </div>
+            <div id="tagCloud">
             </div>
         </div>
         <div width="100%" height="100%" id="video-container">
@@ -59,7 +68,10 @@
 
                 return loadTranscript(videoUrl)
                     .then(t => disableGrep(!t))
-                    .then(() => grep())
+                    .then(() => {
+                        buildTagCloud(); 
+                        grep();
+                    })
             }
 
             function disableGrep(disable = true) {
@@ -94,11 +106,37 @@
                 return videoUrl;
             }
 
+            function buildTagCloud() {
+                if (!transcript) return;
+                tagWords = {};
+                transcript.forEach((item, _) => {
+                    item.words.forEach((wordSegment, _) => {
+                        let word = wordSegment.word
+                        let refWord = word.toLowerCase()
+                        if (word.length < 5) { return; } // not interesting
+                        if (tagWords[refWord]) {
+                            tagWords[refWord].weight += 1;
+                        } else {
+                            link = location.href.split('!').slice(0, 1).concat(word).join('!')
+                            tagWords[refWord] = {text: word, weight: 1, link: link, handlers: { click: () => {
+                                document.getElementById("query").value = word;
+                                grep();
+                            }}};
+                        }
+                    })
+                });
+                $('#tagCloud').jQCloud(Object.values(tagWords), { autoResize: true });
+            }
+
             function grep() {
                 if (!transcript) return;
 
                 let videoUrl = document.getElementById("videoUrl").value;
-                let query = document.getElementById("query").value;
+                let query = document.getElementById("query").value.toLowerCase();
+                if (query == '') {
+                    updateVideoPlayer(videoUrl);
+                    return;
+                }
                 let { cloudName, publicId } = parseUrl(videoUrl);
 
                 updateHash(videoUrl, query);
