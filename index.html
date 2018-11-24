@@ -34,9 +34,9 @@
                 box-sizing: border-box;
             }
         </style>
-        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
-        <link rel="stylesheet" href="//mistic100.github.io/jQCloud/dist/jqcloud2/dist/jqcloud.min.css">
-        <script src="//mistic100.github.io/jQCloud/dist/jqcloud2/dist/jqcloud.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+        <link rel="stylesheet" href="https://mistic100.github.io/jQCloud/dist/jqcloud2/dist/jqcloud.min.css">
+        <script src="https://mistic100.github.io/jQCloud/dist/jqcloud2/dist/jqcloud.js"></script>
     </head>
     <body>
 
@@ -154,9 +154,8 @@
 
                         if (wordIndex !== -1) {
                             let startIndex = Math.max(0, wordIndex - 3);
-
                             let wordsLen = item.words.length;
-                            let endIndex = Math.min(wordIndex + 3, wordsLen);
+                            let endIndex = Math.min(wordIndex + 3, wordsLen - 1);
 
                             startTime = item.words[startIndex].start_time;
                             endTime = item.words[endIndex].end_time;
